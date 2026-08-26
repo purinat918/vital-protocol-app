@@ -8,7 +8,7 @@
  * แล้วเปลี่ยนค่า MODEL ด้านล่างได้เลย
  */
 
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-3.6-flash";
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
