@@ -76,12 +76,31 @@ function buildHeatmap(completed, weeks = 13) {
   return cols;
 }
 
-async function fileToBase64(file) {
+async function compressImage(file, maxWidth = 800) {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(",")[1]);
-    r.onerror = () => reject(new Error("read failed"));
-    r.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth) {
+          h = Math.round((h * maxWidth) / w);
+          w = maxWidth;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        resolve(dataUrl); // returns data URL
+      };
+      img.onerror = () => reject(new Error("image load failed"));
+    };
+    reader.onerror = () => reject(new Error("read failed"));
   });
 }
 
@@ -311,12 +330,13 @@ export default function VitalProtocol() {
     setAnalyzing(true);
     setAnalyzeError("");
     try {
-      const base64 = await fileToBase64(file);
-      setPreviewImage(`data:${file.type || "image/jpeg"};base64,${base64}`);
+      const dataUrl = await compressImage(file);
+      const base64 = dataUrl.split(",")[1];
+      setPreviewImage(dataUrl);
       const response = await fetch("/api/analyze-food", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mediaType: file.type || "image/jpeg" }),
+        body: JSON.stringify({ image: base64, mediaType: "image/jpeg" }),
       });
       const parsed = await response.json();
       if (parsed.error) throw new Error(parsed.error);
