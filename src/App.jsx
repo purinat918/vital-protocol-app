@@ -351,7 +351,7 @@ export default function VitalProtocol() {
       };
       setFoodLog((prev) => ({ ...prev, [today]: [...(prev[today] || []), newEntry] }));
     } catch (err) {
-      setAnalyzeError("วิเคราะห์รูปไม่สำเร็จ ลองใหม่ หรือเพิ่มด้วยตนเองด้านล่าง");
+      setAnalyzeError("วิเคราะห์รูปไม่สำเร็จ: " + err.message);
     } finally {
       setAnalyzing(false);
       setPreviewImage(null);
@@ -404,6 +404,7 @@ export default function VitalProtocol() {
 
   return (
     <div className="vp-root">
+      <input ref={fileInputRef} type="file" accept="image/jpeg, image/png, image/webp" style={{ display: "none" }} onChange={handlePhoto} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
         .vp-root { min-height:100vh; background:radial-gradient(circle at 50% -10%,#1a0d09 0%,#0B0705 55%,#050302 100%); color:#F3E9E4; font-family:'Inter',sans-serif; padding:24px 16px 48px; box-sizing:border-box; }
@@ -795,7 +796,6 @@ export default function VitalProtocol() {
 
             <div className="vp-panel">
               <h3>บันทึกมื้ออาหารวันนี้</h3>
-              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
               <button className="vp-photo-btn" onClick={() => fileInputRef.current?.click()} disabled={analyzing}>
                 {analyzing ? <Loader2 size={16} className="vp-flame-icon" /> : <Camera size={16} />}
                 {analyzing ? "กำลังวิเคราะห์รูปด้วย AI..." : "แนบรูปอาหาร — ให้ AI คำนวณแคลให้"}
