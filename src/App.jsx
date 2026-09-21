@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Flame, Dumbbell, Calendar, UtensilsCrossed, Plus, Trash2, Camera,
   Check, Trophy, Shield, Crown, Gem, Zap, X, Loader2, RotateCcw,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
@@ -48,6 +49,14 @@ function computeCurrentStreak(completed) {
   }
   return count;
 }
+
+function getDaysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate();
+}
+function getFirstDayOfMonth(year, month) {
+  return new Date(year, month, 1).getDay(); // 0 = Sun
+}
+const MONTH_NAMES = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 function buildHeatmap(completed, weeks = 13) {
   const end = new Date();
@@ -155,6 +164,8 @@ export default function VitalProtocol() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
   const [toast, setToast] = useState(null);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
   const prevUnlockedCount = useRef(0);
 
@@ -301,6 +312,7 @@ export default function VitalProtocol() {
     setAnalyzeError("");
     try {
       const base64 = await fileToBase64(file);
+      setPreviewImage(`data:${file.type || "image/jpeg"};base64,${base64}`);
       const response = await fetch("/api/analyze-food", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -322,6 +334,7 @@ export default function VitalProtocol() {
       setAnalyzeError("วิเคราะห์รูปไม่สำเร็จ ลองใหม่ หรือเพิ่มด้วยตนเองด้านล่าง");
     } finally {
       setAnalyzing(false);
+      setPreviewImage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
@@ -461,6 +474,29 @@ export default function VitalProtocol() {
         .vp-food-meta { font-size:11px; color:#8A756B; }
         .vp-manual-row { display:flex; gap:6px; margin-top:10px; }
         .vp-toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1E100A; border:1px solid #FF4B2B; color:#F3E9E4; padding:12px 18px; border-radius:10px; display:flex; align-items:center; gap:10px; z-index:50; box-shadow:0 0 30px rgba(255,75,43,.3); }
+
+        .vp-calendar { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .vp-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .vp-cal-nav { background: #1A100C; border: 1px solid #2A1A14; color: #F3E9E4; border-radius: 6px; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .vp-cal-nav:hover { background: #2A1A14; color: #FF4B2B; }
+        .vp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .vp-cal-day-head { text-align: center; font-size: 11px; color: #8A756B; font-weight: 600; padding: 4px 0; }
+        .vp-cal-cell { aspect-ratio: 1; border-radius: 6px; background: #1A100C; display: flex; align-items: center; justify-content: center; font-size: 13px; font-family: 'Space Grotesk', sans-serif; position: relative; border: 1px solid transparent; }
+        .vp-cal-cell.empty { background: transparent; }
+        .vp-cal-cell.rest { background: #1F3B33; color: #33D6A6; border-color: #2E5C4E; }
+        .vp-cal-cell.done { background: rgba(255, 75, 43, 0.15); color: #FF4B2B; border-color: #FF4B2B; }
+        .vp-cal-cell.today { border: 1.5px solid #F3E9E4; }
+        
+        .vp-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: #FF4B2B; color: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255, 75, 43, 0.4); border: none; cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        .vp-fab:active { transform: scale(0.9); }
+        .vp-fab:hover { transform: scale(1.05); }
+
+        .vp-scanner-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .vp-scanner-box { position: relative; max-width: 90%; max-height: 70%; border-radius: 12px; overflow: hidden; border: 2px solid #FF4B2B; box-shadow: 0 0 30px rgba(255, 75, 43, 0.3); }
+        .vp-scanner-img { display: block; width: 100%; height: auto; max-height: 60vh; object-fit: contain; }
+        .vp-scanner-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #FF4B2B; box-shadow: 0 0 15px #FF4B2B, 0 0 30px #FF4B2B; animation: vp-scan 1.8s linear infinite alternate; }
+        @keyframes vp-scan { 0% { top: 0%; } 100% { top: calc(100% - 3px); } }
+        .vp-scanner-text { margin-top: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: #FF4B2B; font-weight: 600; display: flex; align-items: center; gap: 10px; }
       `}</style>
 
       <div className="vp-wrap">
@@ -558,31 +594,40 @@ export default function VitalProtocol() {
         {tab === "grid" && (
           <>
             <div className="vp-panel">
-              <h3><Calendar size={15} color="#FF4B2B" /> Discipline Grid — 13 สัปดาห์</h3>
-              <div className="vp-heat-scroll">
-                <div className="vp-heat-grid">
-                  {heatCols.flatMap((col, ci) =>
-                    col.map((d, ri) => {
-                      const key = dateKey(d);
-                      const entry = completed[key];
-                      const isFuture = d > new Date();
-                      const isToday = key === today;
-                      let cls = "vp-heat-cell";
-                      let style = {};
-                      if (!isFuture) {
-                        if (entry?.dayComplete) style = { background: "#FF4B2B" };
-                        else if (entry?.restConfirmed) cls += " rest";
-                      }
-                      if (isToday) cls += " today-ring";
-                      return <div key={`${ci}-${ri}`} className={cls} style={style} title={thaiDateLabel(key)} />;
-                    })
-                  )}
+              <h3><Calendar size={15} color="#FF4B2B" /> Discipline Calendar</h3>
+              <div className="vp-calendar">
+                <div className="vp-cal-header">
+                  <button className="vp-cal-nav" onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
+                  <div style={{ fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {MONTH_NAMES[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+                  </div>
+                  <button className="vp-cal-nav" onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
+                </div>
+                <div className="vp-cal-grid">
+                  {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map((d, i) => <div key={i} className="vp-cal-day-head">{d}</div>)}
+                  {Array.from({ length: (getFirstDayOfMonth(calendarDate.getFullYear(), calendarDate.getMonth()) + 6) % 7 }).map((_, i) => <div key={`empty-${i}`} className="vp-cal-cell empty" />)}
+                  {Array.from({ length: getDaysInMonth(calendarDate.getFullYear(), calendarDate.getMonth()) }).map((_, i) => {
+                    const d = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), i + 1);
+                    const k = dateKey(d);
+                    const isFuture = d > new Date(new Date().setHours(0,0,0,0));
+                    const isToday = k === today;
+                    const entry = completed[k];
+                    let cls = "vp-cal-cell";
+                    if (isToday) cls += " today";
+                    if (!isFuture && entry?.dayComplete) cls += " done";
+                    else if (!isFuture && entry?.restConfirmed) cls += " rest";
+                    return (
+                      <div key={i} className={cls} title={thaiDateLabel(k)}>
+                        {i + 1}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="vp-legend">
                 <span className="sw" style={{ background: "#1A100C" }} /> ไม่มีบันทึก
-                <span className="sw" style={{ background: "#1F3B33", marginLeft: 8 }} /> วันพัก
-                <span className="sw" style={{ background: "#FF4B2B", marginLeft: 8 }} /> ซ้อมสำเร็จ
+                <span className="sw" style={{ background: "#1F3B33", border: "1px solid #2E5C4E", marginLeft: 8 }} /> วันพัก
+                <span className="sw" style={{ background: "rgba(255,75,43,0.15)", border: "1px solid #FF4B2B", marginLeft: 8 }} /> ซ้อมสำเร็จ
               </div>
             </div>
 
@@ -785,6 +830,24 @@ export default function VitalProtocol() {
             <div style={{ fontSize: 12, color: "#8A756B" }}>{toast.label} · {toast.days} วันติดต่อกัน</div>
           </div>
           <button className="vp-icon-btn" onClick={() => setToast(null)}><X size={14} /></button>
+        </div>
+      )}
+
+      {/* Persistent FAB */}
+      <button className="vp-fab" onClick={() => fileInputRef.current?.click()} aria-label="ถ่ายรูปอาหาร">
+        <Camera size={24} color="#000" />
+      </button>
+
+      {/* Scanner Overlay */}
+      {analyzing && previewImage && (
+        <div className="vp-scanner-overlay">
+          <div className="vp-scanner-box">
+            <img src={previewImage} alt="scanning" className="vp-scanner-img" />
+            <div className="vp-scanner-line"></div>
+          </div>
+          <div className="vp-scanner-text">
+            <Loader2 size={18} className="vp-flame-icon" /> กำลังวิเคราะห์รูปด้วย AI...
+          </div>
         </div>
       )}
     </div>

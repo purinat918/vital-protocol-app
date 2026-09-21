@@ -1,0 +1,15 @@
+{
+  "name": "VITAL PROTOCOL",
+  "short_name": "VITAL",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050302",
+  "theme_color": "#050302",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
